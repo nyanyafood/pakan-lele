@@ -3,45 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kontrol Pakan Lele Jarak Jauh</title>
+    <title>Smart Pond - Monitor Kesehatan Lele</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; margin-top: 50px; background-color: #f0f4f8; color: #333; }
-        .container { max-width: 400px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1 { color: #2c3e50; font-size: 24px; }
-        .btn { background-color: #27ae60; color: white; border: none; padding: 20px 40px; font-size: 20px; font-weight: bold; cursor: pointer; border-radius: 50px; width: 100%; transition: 0.2s; box-shadow: 0 5px #1e7e43; }
-        .btn:active { box-shadow: 0 2px #1e7e43; transform: translateY(3px); }
-        #status { margin-top: 20px; font-weight: bold; color: #7f8c8d; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #f4f7f6; padding: 15px; margin: 0; }
+        .container { max-width: 480px; margin: 20px auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        h1 { color: #2c3e50; font-size: 22px; margin-bottom: 5px; }
+        .subtitle { color: #7f8c8d; font-size: 14px; margin-bottom: 25px; }
+        .grid-status { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .card { background: #f8fafc; padding: 15px; border-radius: 12px; text-align: left; border-left: 5px solid #bdc3c7; }
+        .card h3 { margin: 0 0 5px 0; font-size: 13px; color: #64748b; text-transform: uppercase; }
+        .card .value { font-size: 20px; font-weight: bold; color: #1e293b; }
+        
+        /* Warna Dinamis */
+        .border-aman { border-left-color: #27ae60 !important; }
+        .border-bahaya { border-left-color: #e74c3c !important; }
+        
+        .form-group { text-align: left; margin-bottom: 15px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; color: #34495e; font-size: 14px; }
+        input, select { width: 100%; padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; }
+        .btn { background-color: #27ae60; color: white; border: none; padding: 15px; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 10px; width: 100%; margin-top: 5px; box-shadow: 0 4px #1e7e43; transition: 0.1s; }
+        .btn:active { box-shadow: 0 2px #1e7e43; transform: translateY(2px); }
+        .btn-blue { background-color: #2980b9; box-shadow: 0 4px #1f6391; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Pakan Lele Otomatis</h1>
-        <p>Tekan tombol di bawah untuk memberi makan ikan dari mana saja.</p>
-        <br>
-        <button class="btn" onclick="beriPakan()">KIRIM PAKAN</button>
-        <div id="status">Status: Standby</div>
+        <h1>Smart Feeder & Pond Lele</h1>
+        <div class="subtitle">Sistem Monitoring Kesehatan Kolam Real-Time</div>
+        
+        <div class="grid-status">
+            <div class="card" id="cardPakan">
+                <h3>Sisa Pakan</h3>
+                <div class="value" id="valPakan">-- %</div>
+            </div>
+            <div class="card" id="cardPH">
+                <h3>pH Air</h3>
+                <div class="value" id="valPH">--</div>
+            </div>
+            <div class="card" id="cardSuhu">
+                <h3>Suhu Air</h3>
+                <div class="value" id="valSuhu">-- °C</div>
+            </div>
+            <div class="card" id="cardKeruh">
+                <h3>Kekeruhan</h3>
+                <div class="value" id="valKeruh">--</div>
+            </div>
+        </div>
+
+        <div class="card border-aman" id="cardFitur" style="margin-bottom: 20px; border-left-color: #2980b9 !important;">
+            <h3>Status Alat Bantu Kolam</h3>
+            <div class="value" id="valRelay" style="font-size: 16px; color:#2980b9;">Mengecek Pompa/Aerator...</div>
+        </div>
+
+        <div class="form-group">
+            <label>Jadwal Makan Utama (Jam):</label>
+            <input type="number" id="inputJam" min="0" max="23" value="7">
+        </div>
+        <div class="form-group">
+            <label>Takaran Pakan Standar:</label>
+            <select id="inputTakaran">
+                <option value="1200">Sedikit (1.2 Detik)</option>
+                <option value="2500" selected>Sedang (2.5 Detik)</option>
+                <option value="4000">Banyak (4 Detik)</option>
+            </select>
+        </div>
+        <button class="btn btn-blue" onclick="simpanPengaturan()">SIMPAN KONFIGURASI</button>
+        
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e2e8f0;">
+
+        <button class="btn" id="btnManual" onclick="beriPakanManual()">BERI PAKAN MANUAL SEKARANG</button>
+        <p id="statusAksi" style="font-weight: bold; color: #64748b; margin-top: 10px; font-size: 14px;">Status: Standby</p>
     </div>
 
     <script>
-        function beriPakan() {
-            document.getElementById("status").innerHTML = "Mengirim perintah...";
-            
-            // GANTI DENGAN WRITE API KEY DARI THINGSPEAK ANDA
-            const apiKey = "60PHWAI5OBQ2BKE9"; 
-            const url = `https://api.thingspeak.com/update?api_key=${apiKey}&field1=1`;
+        const channelID = "3403754";
+        const writeKey = "60PHWAI5OBQ2BKE9";
+        const readKey = "RE5P2KRTKYKXYSOR";
+        let kolamSehat = true;
 
-            fetch(url)
-            .then(response => {
-                if(response.ok) {
-                    document.getElementById("status").innerHTML = "Sinyal Terkirim! Menunggu ESP32...";
-                    setTimeout(() => { document.getElementById("status").innerHTML = "Standby"; }, 5000);
+        function ambilDataKolam() {
+            fetch(`https://api.thingspeak.com/channels/${channelID}/feeds/last.json?api_key=${readKey}`)
+            .then(res => res.json())
+            .then(data => {
+                // 1. Sisa Pakan (Field 2)
+                let pakan = parseInt(data.field2) || 0;
+                document.getElementById("valPakan").innerText = pakan + "%";
+                document.getElementById("cardPakan").className = pakan <= 15 ? "card border-bahaya" : "card border-aman";
+
+                // 2. pH Air (Field 5)
+                let ph = parseFloat(data.field5) || 7.0;
+                document.getElementById("valPH").innerText = ph.toFixed(1);
+                let phOk = (ph >= 6.5 && ph <= 8.0);
+                document.getElementById("cardPH").className = phOk ? "card border-aman" : "card border-bahaya";
+
+                // 3. Suhu Air (Field 6)
+                let suhu = parseFloat(data.field6) || 0.0;
+                document.getElementById("valSuhu").innerText = suhu.toFixed(1) + " °C";
+                let suhuOk = (suhu >= 26.0 && suhu <= 31.5);
+                document.getElementById("cardSuhu").className = suhuOk ? "card border-aman" : "card border-bahaya";
+
+                // 4. Kekeruhan (Field 7)
+                let keruh = parseInt(data.field7) || 0;
+                let keruhStr = "Bersih";
+                let keruhOk = true;
+                if(keruh > 300 && keruh <= 700) { keruhStr = "Sedang"; }
+                else if(keruh > 700) { keruhStr = "Kotor/Pekat"; keruhOk = false; }
+                document.getElementById("valKeruh").innerText = keruhStr;
+                document.getElementById("cardKeruh").className = keruhOk ? "card border-aman" : "card border-bahaya";
+
+                // 5. Status Pompa/Aerator (Field 8)
+                let relayStatus = parseInt(data.field8) || 0;
+                document.getElementById("valRelay").innerText = relayStatus === 1 ? "Sirkulasi Pompa & Aerator: MENYALA" : "Sirkulasi Pompa & Aerator: MATI (Standby)";
+
+                // Kesimpulan Kondisi Kelayakan Pakan
+                if (!phOk || !suhuOk) {
+                    kolamSehat = false;
+                    document.getElementById("btnManual").style.backgroundColor = "#94a3b8";
+                    document.getElementById("btnManual").innerText = "PAKAN DIKUNCI (KONDISI AIR BURUK)";
                 } else {
-                    document.getElementById("status").innerHTML = "Gagal mengirim sinyal.";
+                    kolamSehat = true;
+                    document.getElementById("btnManual").style.backgroundColor = "#27ae60";
+                    document.getElementById("btnManual").innerText = "BERI PAKAN MANUAL SEKARANG";
                 }
-            })
-            .catch(err => {
-                document.getElementById("status").innerHTML = "Error koneksi internet.";
             });
+        }
+        
+        setInterval(ambilDataKolam, 15000);
+        ambilDataKolam();
+
+        function simpanPengaturan() {
+            let jam = document.getElementById("inputJam").value;
+            let takaran = document.getElementById("inputTakaran").value;
+            document.getElementById("statusAksi").innerText = "Memproses pembaruan sistem...";
+            fetch(`https://api.thingspeak.com/update?api_key=${writeKey}&field3=${jam}&field4=${takaran}`)
+            .then(res => { if(res.ok) document.getElementById("statusAksi").innerText = "Jadwal & Takaran diperbarui!"; });
+        }
+
+        function beriPakanManual() {
+            if(!kolamSehat) {
+                alert("Sistem Keamanan: Kondisi air kolam berbahaya bagi pencernaan lele saat ini!");
+                return;
+            }
+            document.getElementById("statusAksi").innerText = "Mengirim instruksi pakan...";
+            fetch(`https://api.thingspeak.com/update?api_key=${writeKey}&field1=1`)
+            .then(res => { if(res.ok) document.getElementById("statusAksi").innerText = "Sinyal sukses diterima alat!"; });
         }
     </script>
 </body>

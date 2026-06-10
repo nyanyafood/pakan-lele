@@ -14,13 +14,13 @@
         .sensor-card { background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
         .sensor-card h4 { margin: 0; font-size: 11px; color: #64748b; text-transform: uppercase; }
         .sensor-card .value { font-size: 18px; font-weight: bold; color: #0f172a; margin-top: 4px; }
+        .full-width { grid-column: span 2; background: #f0fdf4; border: 1px solid #bbf7d0; } /* Styling khusus wadah pakan */
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
         label { font-size: 12px; font-weight: bold; color: #475569; display: block; margin-bottom: 4px; }
         input, select { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         .btn { width: 100%; padding: 10px; color: white; border: none; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 5px; font-size: 14px; }
         .btn-save { background-color: #2980b9; }
         .btn-feed { background-color: #27ae60; margin-top: 10px; }
-        .status-text { text-align: center; font-size: 12px; color: #64748b; margin-top: 5px; font-style: italic; }
     </style>
 </head>
 <body>
@@ -31,6 +31,7 @@
     <div class="kolam-container" style="border-top-color: #2980b9;">
         <div class="kolam-title"><span>🐟 KOLAM BUNDAR 1</span> <span style="font-size:12px; color:#2980b9;" id="statusK1">Standby</span></div>
         <div class="grid-sensor">
+            <div class="sensor-card full-width"><h4>Sisa Kapasitas Pakan</h4><div class="value" id="pakanK1">-- %</div></div>
             <div class="sensor-card"><h4>pH Air</h4><div class="value" id="phK1">--</div></div>
             <div class="sensor-card"><h4>Suhu Air</h4><div class="value" id="suhuK1">-- °C</div></div>
         </div>
@@ -52,6 +53,7 @@
     <div class="kolam-container" style="border-top-color: #e67e22;">
         <div class="kolam-title"><span>🐟 KOLAM BUNDAR 2</span> <span style="font-size:12px; color:#e67e22;" id="statusK2">Standby</span></div>
         <div class="grid-sensor">
+            <div class="sensor-card full-width"><h4>Sisa Kapasitas Pakan</h4><div class="value" id="pakanK2">-- %</div></div>
             <div class="sensor-card"><h4>pH Air</h4><div class="value" id="phK2">--</div></div>
             <div class="sensor-card"><h4>Suhu Air</h4><div class="value" id="suhuK2">-- °C</div></div>
         </div>
@@ -73,6 +75,7 @@
     <div class="kolam-container" style="border-top-color: #9b59b6;">
         <div class="kolam-title"><span>🐟 KOLAM BUNDAR 3</span> <span style="font-size:12px; color:#9b59b6;" id="statusK3">Standby</span></div>
         <div class="grid-sensor">
+            <div class="sensor-card full-width"><h4>Sisa Kapasitas Pakan</h4><div class="value" id="pakanK3">-- %</div></div>
             <div class="sensor-card"><h4>pH Air</h4><div class="value" id="phK3">--</div></div>
             <div class="sensor-card"><h4>Suhu Air</h4><div class="value" id="suhuK3">-- °C</div></div>
         </div>
@@ -92,10 +95,10 @@
     </div>
 
     <script>
-        // MASUKKAN DATA CONFIG CONFIG CLOUD ANDA BERDASARKAN INDEKS [K1, K2, K3]
-        const channelIDs = ["3403754", "3404575", "3404577"];
-        const writeKeys  = ["60PHWAI5OBQ2BKE9", "A51C5Z5NH29JJ9F3", "3J7EMC6XU2V55N58"];
-        const readKeys   = ["RE5P2KRTKYKXYSOR", "DC61K158BZQATD8W", "T35LJFZV13N7VTT8"];
+        // MASUKKAN DATA CONFIG CLOUD ANDA DISINI (URUTAN K1, K2, K3)
+         const channelIDs = ["3403754", "3404575", "3404577"];
+         const writeKeys  = ["60PHWAI5OBQ2BKE9", "A51C5Z5NH29JJ9F3", "3J7EMC6XU2V55N58"];
+         const readKeys   = ["RE5P2KRTKYKXYSOR", "DC61K158BZQATD8W", "T35LJFZV13N7VTT8"];
 
         function muatDataRealtime() {
             for(let i = 0; i < 3; i++) {
@@ -103,7 +106,11 @@
                 fetch(`https://api.thingspeak.com/channels/${channelIDs[i]}/feeds/last.json?api_key=${readKeys[i]}`)
                 .then(res => res.json())
                 .then(data => {
+                    // Update Sisa Pakan (Field 2)
+                    document.getElementById(`pakanK${kNum}`).innerText = data.field2 ? data.field2 + " %" : "0 %";
+                    // Update pH (Field 5)
                     document.getElementById(`phK${kNum}`).innerText = data.field5 ? parseFloat(data.field5).toFixed(1) : "--";
+                    // Update Suhu (Field 6)
                     document.getElementById(`suhuK${kNum}`).innerText = data.field6 ? parseFloat(data.field6).toFixed(1) : "--";
                 }).catch(err => console.log("Gagal memuat data Kolam " + kNum));
             }
@@ -119,8 +126,6 @@
             let takaran = document.getElementById(`takaranK${kolamNum}`).value;
             
             document.getElementById(`statusK${kolamNum}`).innerText = "Menyimpan...";
-            
-            // Kirim Update Jadwal Pagi (Field3), Sore (Field4), dan Takaran (Field7)
             fetch(`https://api.thingspeak.com/update?api_key=${writeKeys[idx]}&field3=${pagi}&field4=${sore}&field7=${takaran}`)
             .then(res => {
                 if(res.ok) document.getElementById(`statusK${kolamNum}`).innerText = "Jadwal Disimpan!";
